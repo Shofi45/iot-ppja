@@ -144,3 +144,38 @@ function resetSistem(relayPin) {
     document.getElementById('jadwalOn' + relayPin).value = '';
     document.getElementById('jadwalOff' + relayPin).value = '';
 }
+
+// URL Database Firebase Anda
+const firebaseUrl = "https://ppja-iot-default-rtdb.asia-southeast1.firebasedatabase.app/IoT-PPJA.json";
+
+// Fungsi ini akan otomatis berjalan saat halaman web selesai dimuat
+window.onload = function() {
+  ambilDataDariFirebase();
+};
+
+function ambilDataDariFirebase() {
+  fetch(firebaseUrl)
+    .then(response => response.json())
+    .then(data => {
+      if (data) {
+        // Sesuaikan ID elemen HTML dengan ID tombol/switch di web Anda
+        if (document.getElementById("relay1Switch")) {
+          document.getElementById("relay1Switch").checked = (data.Relay1 === 1);
+        }
+        if (document.getElementById("relay2Switch")) {
+          document.getElementById("relay2Switch").checked = (data.Relay2 === 1);
+        }
+        if (document.getElementById("relay3Switch")) {
+          document.getElementById("relay3Switch").checked = (data.Relay3 === 1);
+        }
+        if (document.getElementById("relay4Switch")) {
+          document.getElementById("relay4Switch").checked = (data.Relay4 === 1);
+        }
+        
+        console.log("Status terakhir berhasil dimuat dari Firebase!");
+      }
+    })
+    .catch(error => {
+      console.error("Gagal mengambil data dari Firebase:", error);
+    });
+}
