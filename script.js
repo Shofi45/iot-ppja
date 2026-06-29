@@ -127,32 +127,44 @@ function resetSistem(relayPin) {
     document.getElementById('jadwalOn' + relayPin).value = '';
     document.getElementById('jadwalOff' + relayPin).value = '';
 }
-
 // ==========================================
 // 5. LISTENER REALTIME FIREBASE (Sinkronisasi Dua Arah)
 // ==========================================
-// Fungsi ini menggantikan fetch() sekali jalan. 
-// on('value') akan terus memantau Firebase. Jika ESP32 mematikan relay, web akan otomatis ikut mati.
 window.onload = function() {
+    // on('value') akan terus memantau Firebase secara realtime
     database.ref('IoT-PPJA').on('value', (snapshot) => {
         const data = snapshot.val();
+        
         if (data) {
-            // Update UI untuk Relay 1
-            if (document.getElementById('sliderRelay1')) {
-                let slider1 = document.getElementById('sliderRelay1');
-                let label1 = document.getElementById('labelStatusRelay1');
-                slider1.checked = (data.Relay1 === 1);
-                label1.innerText = (data.Relay1 === 1) ? "ON" : "OFF";
-                label1.className = (data.Relay1 === 1) ? "form-check-label text-success" : "form-check-label text-danger";
+            // Gunakan perulangan (loop) untuk mengecek Relay 1 sampai 4
+            for (let i = 1; i <= 4; i++) {
+                let relayName = "Relay" + i;   // Menghasilkan teks: "Relay1", "Relay2", dst.
+                let timerName = "Timer" + i;   // Menghasilkan teks: "Timer1", "Timer2", dst.
                 
-                // Jika timer/jadwal sudah direset oleh ESP32 (menjadi 0), buka kunci panel
-                if(data.Timer1 === 0 && data.Relay1 === 0) {
-                    bukaPanel("Relay1");
+                let slider = document.getElementById('slider' + relayName);
+                let label = document.getElementById('labelStatus' + relayName);
+                
+                // Pastikan elemen HTML-nya ada sebelum diubah
+                if (slider && label) {
+                    // Ambil status dari JSON Firebase (data.Relay1, data.Relay2, dst.)
+                    let statusRelay = data[relayName];
+                    
+                    // Update posisi slider dan teks label
+                    slider.checked = (statusRelay === 1);
+                    label.innerText = (statusRelay === 1) ? "ON" : "OFF";
+                    label.className = (statusRelay === 1) ? "form-check-label text-success" : "form-check-label text-danger";
+                    
+                    // Jika timer sudah 0 dan relay mati, buka kunci panel secara otomatis
+                    if (data[timerName] === 0 && statusRelay === 0) {
+                        // Pastikan fungsi bukaPanel tidak error jika elemen timer/jadwal tidak ada (untuk Relay 2-4)
+                        try {
+                            bukaPanel(relayName);
+                        } catch (e) {
+                            // Abaikan error jika Relay 2-4 tidak punya tombol timer/jadwal di HTML
+                        }
+                    }
                 }
             }
-            
-            // Lakukan hal yang sama untuk Relay2, Relay3, Relay4 jika perlu
-            // ...
         }
     });
 };
