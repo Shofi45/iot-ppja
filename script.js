@@ -1,184 +1,402 @@
 // ==========================================
-// 1. KONFIGURASI & INISIALISASI FIREBASE
+// 1. FIREBASE
 // ==========================================
 const firebaseConfig = {
     apiKey: "AIzaSyBhPYRXyxePX_y12XTk3agb3PSbTBdnvac",
     databaseURL: "https://ppja-iot-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "ppja-iot"
 };
-
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
-// --------------------------------------------------
-// Fungsi Mengirim Data & Mengubah UI Slider
-// --------------------------------------------------
+// ==========================================
+// 2. STATE CLOCK PICKER
+// ==========================================
+let clockState = {
+    relayName : '',   // "Relay1" dst
+    tipe      : '',   // "On" / "Off"
+    mode      : 'jam',// "jam" / "menit"
+    jam       : 0,
+    menit     : 0,
+    dragging  : false
+};
+
+// ==========================================
+// 3. RENDER JAM ANALOG
+// ==========================================
+function renderClockNumbers() {
+    const face = document.getElementById('clockFace');
+    // Hapus angka lama
+    face.querySelectorAll('.clock-number').forEach(el => el.remove());
+
+    const cx = 120, cy = 120, r = 90, rInner = 62;
+    const isJam = (clockState.mode === 'jam');
+
+    if (isJam) {
+        // Luar: 1–12, Dalam: 13–23 + 0
+        for (let n = 1; n <= 12; n++) {
+            let angle = (n / 12) * 2 * Math.PI - Math.PI / 2;
+            let x = cx + r * Math.cos(angle);
+            let y = cy + r * Math.sin(angle);
+            buatAngka(face, n, x, y, false, clockState.jam === n);
+        }
+        for (let n = 13; n <= 23; n++) {
+            let angle = (n / 12) * 2 * Math.PI - Math.PI / 2;
+            let x = cx + rInner * Math.cos(angle);
+            let y = cy + rInner * Math.sin(angle);
+            buatAngka(face, n, x, y, true, clockState.jam === n);
+        }
+        // angka 0
+        buatAngka(face, 0, cx, cy - rInner, true, clockState.jam === 0);
+    } else {
+        // Menit: 0, 5, 10 ... 55 di luar
+        for (let n = 0; n < 12; n++) {
+            let val = n * 5;
+            let angle = (n / 12) * 2 * Math.PI - Math.PI / 2;
+            let x = cx + r * Math.cos(angle);
+            let y = cy + r * Math.sin(angle);
+            buatAngka(face, val, x, y, false, clockState.menit === val);
+        }
+    }
+}
+
+function buatAngka(face, val, x, y, inner, selected) {
+    let el = document.createElement('div');
+    el.className = 'clock-number' + (inner ? ' inner' : '') + (selected ? ' selected' : '');
+    el.style.left = x + 'px';
+    el.style.top  = y + 'px';
+    el.textContent = String(val).padStart(2, '0');
+    el.onclick = (e) => {
+        e.stopPropagation();
+        if (clockState.mode === 'jam') {
+            clockState.jam = val;
+            updateJarum();
+            renderClockNumbers();
+            updateDigital();
+        } else {
+            clockState.menit = val;
+            updateJarum();
+            renderClockNumbers();
+            updateDigital();
+        }
+    };
+    face.appendChild(el);
+}
+
+function updateJarum() {
+    const hand = document.getElementById('clockHand');
+    const isJam = (clockState.mode === 'jam');
+    let total, val, maxVal, panjang;
+
+    if (isJam) {
+        val = clockState.jam % 12;
+        maxVal = 12;
+        // Jarum lebih pendek untuk jam dalam (13–23)
+        panjang = clockState.jam >= 13 || clockState.jam === 0 ? 55 : 82;
+    } else {
+        val = clockState.menit;
+        maxVal = 60;
+        panjang = 85;
+    }
+
+    let derajat = (val / maxVal) * 360 - 90;
+    hand.style.height = panjang + 'px';
+    hand.style.transform = `rotate(${derajat + 90}deg)`;
+}
+
+function updateDigital() {
+    let j = String(clockState.jam).padStart(2, '0');
+    let m = String(clockState.menit).padStart(2, '0');
+    document.getElementById('digitJam').textContent   = j;
+    document.getElementById('digitMenit').textContent = m;
+    document.getElementById('digitJam').classList.toggle('active',   clockState.mode === 'jam');
+    document.getElementById('digitMenit').classList.toggle('active', clockState.mode === 'menit');
+}
+
+function pindahMode(mode) {
+    clockState.mode = mode;
+    let isJam = (mode === 'jam');
+    document.getElementById('btnClockNext').textContent = isJam ? 'Menit →' : '✓ Selesai';
+    updateDigital();
+    updateJarum();
+    renderClockNumbers();
+}
+
+// ==========================================
+// 4. DRAG JARUM (touch & mouse)
+// ==========================================
+function getAngleDariEvent(e) {
+    const face = document.getElementById('clockFace');
+    const rect = face.getBoundingClientRect();
+    const cx = rect.left + rect.width  / 2;
+    const cy = rect.top  + rect.height / 2;
+    let clientX, clientY;
+    if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+    } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+    }
+    let angle = Math.atan2(clientY - cy, clientX - cx);
+    return angle; // radian, -PI to PI
+}
+
+function hitungDariSudutLama(angle) {
+    // Konversi angle ke nilai jam/menit
+    // 12 jam: sudut -PI/2 = 0/12, searah jarum jam
+    let norm = (angle + Math.PI / 2 + 2 * Math.PI) % (2 * Math.PI); // 0 sampai 2PI, mulai dari atas
+    if (clockState.mode === 'jam') {
+        let raw = Math.round((norm / (2 * Math.PI)) * 12);
+        return raw === 12 ? 12 : raw;
+    } else {
+        let raw = Math.round((norm / (2 * Math.PI)) * 60);
+        return raw === 60 ? 0 : raw;
+    }
+}
+
+function mulaiDrag(e) {
+    clockState.dragging = true;
+    prosesGestur(e);
+}
+function drag(e) {
+    if (!clockState.dragging) return;
+    e.preventDefault();
+    prosesGestur(e);
+}
+function selesaiDrag(e) {
+    clockState.dragging = false;
+}
+function prosesGestur(e) {
+    let angle = getAngleDariEvent(e);
+    let val   = hitungDariSudut(angle);
+    if (clockState.mode === 'jam') {
+        clockState.jam = val;
+    } else {
+        clockState.menit = val;
+    }
+    updateJarum();
+    updateDigital();
+    renderClockNumbers();
+}
+
+// Alias agar tidak syntax error (nama fungsi di atas ada typo, diperbaiki di sini)
+function hitungDariSudut(angle) {
+    let norm = (angle + Math.PI / 2 + 2 * Math.PI) % (2 * Math.PI);
+    if (clockState.mode === 'jam') {
+        let raw = Math.round((norm / (2 * Math.PI)) * 12);
+        return raw === 12 ? 12 : raw;
+    } else {
+        let raw = Math.round((norm / (2 * Math.PI)) * 60);
+        return raw === 60 ? 0 : raw;
+    }
+}
+
+// ==========================================
+// 5. BUKA / TUTUP MODAL
+// ==========================================
+function bukaClockModal(relayName, tipe) {
+    // Cek apakah panel sedang dikunci
+    let btnJadwal = document.getElementById('btnJadwal' + relayName);
+    if (btnJadwal && btnJadwal.disabled) return;
+
+    clockState.relayName = relayName;
+    clockState.tipe      = tipe;
+    clockState.mode      = 'jam';
+
+    // Isi nilai awal dari hidden input (jika sudah pernah diset)
+    let hiddenVal = document.getElementById('jadwal' + tipe + relayName).value;
+    if (hiddenVal) {
+        let parts = hiddenVal.split(':');
+        clockState.jam   = parseInt(parts[0], 10) || 0;
+        clockState.menit = parseInt(parts[1], 10) || 0;
+    } else {
+        clockState.jam   = 0;
+        clockState.menit = 0;
+    }
+
+    document.getElementById('clockModalTitle').textContent =
+        'Pilih Jam ' + tipe + ' — ' + relayName;
+    document.getElementById('btnClockNext').textContent = 'Menit →';
+
+    updateDigital();
+    updateJarum();
+    renderClockNumbers();
+
+    document.getElementById('clockModalOverlay').classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function tutupClockModal(e) {
+    if (e && e.target !== document.getElementById('clockModalOverlay')) return;
+    _tutupModal();
+}
+
+function _tutupModal() {
+    document.getElementById('clockModalOverlay').classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+function nextStep() {
+    if (clockState.mode === 'jam') {
+        // Pindah ke pilih menit
+        pindahMode('menit');
+    } else {
+        // Selesai — simpan nilai
+        let j = String(clockState.jam).padStart(2, '0');
+        let m = String(clockState.menit).padStart(2, '0');
+        let nilai = j + ':' + m;
+
+        // Update hidden input
+        let hidden = document.getElementById('jadwal' + clockState.tipe + clockState.relayName);
+        if (hidden) hidden.value = nilai;
+
+        // Update tombol tampilan
+        let nilaiEl = document.getElementById('nilai' + clockState.tipe + clockState.relayName);
+        if (nilaiEl) nilaiEl.textContent = nilai;
+
+        _tutupModal();
+    }
+}
+
+// ==========================================
+// 6. FIREBASE & KONTROL RELAY
+// ==========================================
 function setRelayFirebase(relayPin, status) {
     database.ref('IoT-PPJA/' + relayPin).set(status);
 }
 
-// 1. KONTROL MANUAL (Dari klik Slider)
 function toggleManual(relayPin) {
     let status = document.getElementById('slider' + relayPin).checked ? 1 : 0;
     setRelayFirebase(relayPin, status);
-    
     if (status === 1 || status === 0) {
-        let nomor = relayPin.replace("Relay", "");
-        database.ref('IoT-PPJA/Timer' + nomor).set(0);
+        database.ref('IoT-PPJA/Timer' + relayPin.replace("Relay","")).set(0);
         bukaPanel(relayPin);
     }
 }
 
-// --------------------------------------------------
-// Fungsi Kunci & Buka Panel UI
-// --------------------------------------------------
 function kunciPanel(relayPin, namaMode) {
-    document.getElementById('slider' + relayPin).disabled = true;
-    document.getElementById('timer' + relayPin).disabled = true;
-    document.getElementById('btnTimer' + relayPin).disabled = true;
-    document.getElementById('jadwalOn' + relayPin).disabled = true;
-    document.getElementById('jadwalOff' + relayPin).disabled = true;
-    document.getElementById('btnJadwal' + relayPin).disabled = true;
-
-    document.getElementById('boxReset' + relayPin).classList.remove('d-none');
-    document.getElementById('infoMode' + relayPin).innerText = "Mode Aktif: " + namaMode + " (Jalan di ESP32)";
+    ['slider','timer','btnTimer','btnJadwal',
+     'btnWaktuOn','btnWaktuOff'].forEach(id => {
+        let el = document.getElementById(id + relayPin);
+        if (el) el.disabled = true;
+    });
+    let b = document.getElementById('boxReset' + relayPin);
+    let i = document.getElementById('infoMode' + relayPin);
+    if (b) b.classList.remove('d-none');
+    if (i) i.innerText = "Mode Aktif: " + namaMode + " (Jalan di ESP32)";
 }
 
 function bukaPanel(relayPin) {
-    document.getElementById('slider' + relayPin).disabled = false;
-    document.getElementById('timer' + relayPin).disabled = false;
-    document.getElementById('btnTimer' + relayPin).disabled = false;
-    document.getElementById('jadwalOn' + relayPin).disabled = false;
-    document.getElementById('jadwalOff' + relayPin).disabled = false;
-    document.getElementById('btnJadwal' + relayPin).disabled = false;
-
-    document.getElementById('boxReset' + relayPin).classList.add('d-none');
-    document.getElementById('infoMode' + relayPin).innerText = "";
+    ['slider','timer','btnTimer','btnJadwal',
+     'btnWaktuOn','btnWaktuOff'].forEach(id => {
+        let el = document.getElementById(id + relayPin);
+        if (el) el.disabled = false;
+    });
+    let b = document.getElementById('boxReset' + relayPin);
+    let i = document.getElementById('infoMode' + relayPin);
+    if (b) b.classList.add('d-none');
+    if (i) i.innerText = "";
 }
 
-// --------------------------------------------------
-// 2. FITUR DURASI TIMER (Kirim ke ESP32)
-// --------------------------------------------------
 function setTimer(relayPin) {
-    let inputMenit = document.getElementById('timer' + relayPin).value;
-    
-    if (inputMenit > 0) {
-        let detik = inputMenit * 60;
-        let nomor = relayPin.replace("Relay", "");
-        
-        // Simpan menit ke Firebase agar bisa di-restore saat refresh
-        database.ref('IoT-PPJA/Timer' + nomor).set(detik);
-        database.ref('IoT-PPJA/TimerMenit' + nomor).set(Number(inputMenit));
-        
-        kunciPanel(relayPin, `Timer ${inputMenit} Menit`);
-        alert("Timer berhasil dikirim ke ESP32! Anda bisa menutup web ini.");
+    let menit = document.getElementById('timer' + relayPin).value;
+    if (menit > 0) {
+        let nomor = relayPin.replace("Relay","");
+        database.ref('IoT-PPJA/Timer'      + nomor).set(menit * 60);
+        database.ref('IoT-PPJA/TimerMenit' + nomor).set(Number(menit));
+        kunciPanel(relayPin, `Timer ${menit} Menit`);
+        alert("Timer berhasil dikirim ke ESP32!");
     } else {
         alert("Masukkan angka menit yang valid!");
     }
 }
 
-// --------------------------------------------------
-// 3. FITUR PENJADWALAN JAM (Kirim ke ESP32)
-// --------------------------------------------------
 function setJadwal(relayPin) {
-    let jamOn = document.getElementById('jadwalOn' + relayPin).value;
+    let jamOn  = document.getElementById('jadwalOn'  + relayPin).value;
     let jamOff = document.getElementById('jadwalOff' + relayPin).value;
-    
     if (!jamOn && !jamOff) {
-        alert("Harap isi minimal satu jadwal (ON atau OFF)!");
+        alert("Harap pilih minimal satu jadwal (ON atau OFF)!");
         return;
     }
-
-    let nomor = relayPin.replace("Relay", "");
-
-    if (jamOn) database.ref('IoT-PPJA/SchON' + nomor).set(jamOn);
-    else database.ref('IoT-PPJA/SchON' + nomor).set("none");
-
-    if (jamOff) database.ref('IoT-PPJA/SchOFF' + nomor).set(jamOff);
-    else database.ref('IoT-PPJA/SchOFF' + nomor).set("none");
-
+    let nomor = relayPin.replace("Relay","");
+    database.ref('IoT-PPJA/SchON'  + nomor).set(jamOn  || "none");
+    database.ref('IoT-PPJA/SchOFF' + nomor).set(jamOff || "none");
     kunciPanel(relayPin, "Penjadwalan Otomatis");
-    alert("Jadwal berhasil dikirim ke ESP32! Anda bisa menutup web ini.");
+    alert("Jadwal berhasil dikirim ke ESP32!");
 }
 
-// --------------------------------------------------
-// 4. FITUR ATUR ULANG (RESET)
-// --------------------------------------------------
 function resetSistem(relayPin) {
-    let nomor = relayPin.replace("Relay", "");
-    
+    let nomor = relayPin.replace("Relay","");
     database.ref('IoT-PPJA/' + relayPin).set(0);
-    database.ref('IoT-PPJA/Timer' + nomor).set(0);
+    database.ref('IoT-PPJA/Timer'      + nomor).set(0);
     database.ref('IoT-PPJA/TimerMenit' + nomor).set(0);
-    database.ref('IoT-PPJA/SchON' + nomor).set("none");
-    database.ref('IoT-PPJA/SchOFF' + nomor).set("none");
-    
+    database.ref('IoT-PPJA/SchON'      + nomor).set("none");
+    database.ref('IoT-PPJA/SchOFF'     + nomor).set("none");
     bukaPanel(relayPin);
-    
-    document.getElementById('timer' + relayPin).value = '';
-    document.getElementById('jadwalOn' + relayPin).value = '';
-    document.getElementById('jadwalOff' + relayPin).value = '';
+
+    let timerEl = document.getElementById('timer' + relayPin);
+    if (timerEl) timerEl.value = '';
+
+    ['On','Off'].forEach(tipe => {
+        let h = document.getElementById('jadwal' + tipe + relayPin);
+        let n = document.getElementById('nilai'  + tipe + relayPin);
+        if (h) h.value = '';
+        if (n) n.textContent = '--:--';
+    });
 }
 
 // ==========================================
-// 5. LISTENER REALTIME FIREBASE (Sinkronisasi Dua Arah)
+// 7. LISTENER REALTIME FIREBASE
 // ==========================================
-window.onload = function() {
+window.onload = function () {
     database.ref('IoT-PPJA').on('value', (snapshot) => {
         const data = snapshot.val();
-        
-        if (data) {
-            for (let i = 1; i <= 4; i++) {
-                let relayName = "Relay" + i;
-                let timerName = "Timer" + i;
-                let timerMenitName = "TimerMenit" + i;
-                let schOnName  = "SchON" + i;
-                let schOffName = "SchOFF" + i;
-                
-                let slider = document.getElementById('slider' + relayName);
-                let label  = document.getElementById('labelStatus' + relayName);
-                
-                if (slider && label) {
-                    let statusRelay  = data[relayName];
-                    let timerDetik   = data[timerName];
-                    let timerMenit   = data[timerMenitName];
-                    let schOn        = data[schOnName];
-                    let schOff       = data[schOffName];
+        if (!data) return;
 
-                    // Update slider & label
-                    slider.checked = (statusRelay === 1);
-                    label.innerText = (statusRelay === 1) ? "ON" : "OFF";
-                    label.className = (statusRelay === 1)
-                        ? "form-check-label text-success"
-                        : "form-check-label text-danger";
+        for (let i = 1; i <= 4; i++) {
+            let rn  = "Relay" + i;
+            let slider = document.getElementById('slider' + rn);
+            let label  = document.getElementById('labelStatus' + rn);
+            if (!slider || !label) continue;
 
-                    // --- RESTORE STATE SETELAH REFRESH ---
+            let statusRelay = data["Relay" + i];
+            let timerDetik  = data["Timer" + i];
+            let timerMenit  = data["TimerMenit" + i];
+            let schOn       = data["SchON"  + i];
+            let schOff      = data["SchOFF" + i];
 
-                    // Cek apakah jadwal masih aktif
-                    let jadwalAktif = (schOn && schOn !== "none") || (schOff && schOff !== "none");
+            slider.checked  = (statusRelay === 1);
+            label.innerText = statusRelay === 1 ? "ON" : "OFF";
+            label.className = statusRelay === 1
+                ? "form-check-label text-success"
+                : "form-check-label text-danger";
 
-                    if (jadwalAktif) {
-                        // Kembalikan nilai jam ke input
-                        let elOn  = document.getElementById('jadwalOn'  + relayName);
-                        let elOff = document.getElementById('jadwalOff' + relayName);
-                        if (elOn  && schOn  && schOn  !== "none") elOn.value  = schOn;
-                        if (elOff && schOff && schOff !== "none") elOff.value = schOff;
-                        try { kunciPanel(relayName, "Penjadwalan Otomatis"); } catch(e) {}
+            let jadwalAktif = (schOn && schOn !== "none") || (schOff && schOff !== "none");
 
-                    } else if (timerMenit && timerMenit > 0) {
-                        // Timer masih dalam antrian / sedang berjalan di ESP32
-                        // Kembalikan angka menit ke input dan kunci panel
-                        let elTimer = document.getElementById('timer' + relayName);
-                        if (elTimer) elTimer.value = timerMenit;
-                        try { kunciPanel(relayName, `Timer ${timerMenit} Menit`); } catch(e) {}
-
-                    } else if (timerDetik === 0 && statusRelay === 0) {
-                        // Tidak ada mode aktif → buka panel
-                        try { bukaPanel(relayName); } catch(e) {}
-                    }
+            if (jadwalAktif) {
+                // Restore tampilan tombol
+                if (schOn  && schOn  !== "none") {
+                    let h = document.getElementById('jadwalOn'  + rn);
+                    let n = document.getElementById('nilaiOn'   + rn);
+                    if (h) h.value = schOn;
+                    if (n) n.textContent = schOn;
                 }
+                if (schOff && schOff !== "none") {
+                    let h = document.getElementById('jadwalOff' + rn);
+                    let n = document.getElementById('nilaiOff'  + rn);
+                    if (h) h.value = schOff;
+                    if (n) n.textContent = schOff;
+                }
+                try { kunciPanel(rn, "Penjadwalan Otomatis"); } catch(e) {}
+
+            } else if (timerMenit && timerMenit > 0) {
+                let el = document.getElementById('timer' + rn);
+                if (el) el.value = timerMenit;
+                try { kunciPanel(rn, `Timer ${timerMenit} Menit`); } catch(e) {}
+
+            } else if (timerDetik === 0 && statusRelay === 0) {
+                try { bukaPanel(rn); } catch(e) {}
             }
         }
     });

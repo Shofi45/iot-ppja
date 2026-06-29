@@ -1,118 +1,265 @@
 /* =========================================
    TEMA UI: MODERN DARK GRADIENT
 ========================================= */
-
 body {
-    /* Gradasi Latar Belakang Halus */
     background: linear-gradient(135deg, #0b132b 0%, #1a2751 100%);
     min-height: 100vh;
     color: #ffffff;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Kotak Konten (Card) dengan Gradasi */
 .custom-card {
     background: linear-gradient(145deg, #1c2541, #161e35);
     border: 1px solid #3a506b;
     border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
 }
 
-/* Memaksa font judul dan label menjadi putih */
 .card-body h5, .card-body label, .card-body span {
     color: #ffffff !important;
 }
 
-.text-muted {
-    color: #5bc0be !important; 
-}
+.text-muted { color: #5bc0be !important; }
 
-/* =========================================
-   PERBAIKAN INPUT TEXT BIAR KELIATAN
-========================================= */
 .form-control {
-    background-color: #11182c !important; /* Warna dasar kotak lebih gelap */
+    background-color: #11182c !important;
     border: 1px solid #3a506b !important;
-    color: #ffffff !important; /* MEMAKSA TEKS JADI PUTIH */
+    color: #ffffff !important;
     font-weight: 600;
 }
-
-/* Warna teks petunjuk (placeholder) */
-.form-control::placeholder {
-    color: #6e84a3 !important;
-}
-
-/* Efek menyala saat kotak input di-klik */
+.form-control::placeholder { color: #6e84a3 !important; }
 .form-control:focus {
     background-color: #1c2744 !important;
     color: #ffffff !important;
-    box-shadow: 0 0 0 0.25rem rgba(91, 192, 190, 0.25);
+    box-shadow: 0 0 0 0.25rem rgba(91,192,190,0.25);
     border-color: #5bc0be !important;
 }
 
-/* Ikon jam di dalam input time agar jadi putih */
-input[type="time"]::-webkit-calendar-picker-indicator {
-    filter: invert(1);
+input[type="time"] { display: none !important; }
+
+/* =========================================
+   TOMBOL PILIH WAKTU
+========================================= */
+.btn-waktu {
+    background: #11182c;
+    border: 1px solid #3a506b;
+    color: #ffffff;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    width: 100%;
+    text-align: center;
     cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.btn-waktu:hover, .btn-waktu:focus {
+    border-color: #5bc0be;
+    box-shadow: 0 0 0 2px rgba(91,192,190,0.25);
+    outline: none;
+}
+.btn-waktu .waktu-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #5bc0be;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+.btn-waktu-wrap {
+    display: flex;
+    flex-direction: column;
+}
+.btn-waktu .waktu-nilai {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+.btn-waktu .waktu-icon { color: #5bc0be; font-size: 1.2rem; }
+
+/* =========================================
+   MODAL CLOCK PICKER
+========================================= */
+.clock-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(5,10,25,0.82);
+    z-index: 9999;
+    align-items: flex-end;
+    justify-content: center;
+}
+.clock-modal-overlay.show {
+    display: flex;
+}
+
+.clock-modal {
+    background: linear-gradient(160deg, #1c2541, #111827);
+    border: 1px solid #3a506b;
+    border-radius: 24px 24px 0 0;
+    width: 100%;
+    max-width: 480px;
+    padding: 24px 20px 32px;
+    animation: slideUp 0.25s ease;
+}
+@keyframes slideUp {
+    from { transform: translateY(60px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+
+.clock-modal-title {
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #5bc0be;
+    margin-bottom: 16px;
+}
+
+/* Tampilan angka jam digital besar */
+.clock-digital {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 20px;
+}
+.clock-digit {
+    background: #0d1526;
+    border-radius: 12px;
+    padding: 10px 18px;
+    font-size: 2.6rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    min-width: 80px;
+    text-align: center;
+    border: 2px solid transparent;
+}
+.clock-digit.active {
+    background: #5bc0be;
+    color: #0b132b;
+    border-color: #5bc0be;
+}
+.clock-sep {
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: #5bc0be;
+    margin: 0 2px;
+    line-height: 1;
+}
+
+/* Jam analog */
+.clock-face-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+.clock-face {
+    position: relative;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    background: #0d1526;
+    border: 2px solid #3a506b;
+    touch-action: none;
+    user-select: none;
+}
+
+/* Titik tengah */
+.clock-center {
+    position: absolute;
+    width: 10px; height: 10px;
+    background: #5bc0be;
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+}
+
+/* Jarum jam */
+.clock-hand {
+    position: absolute;
+    bottom: 50%; left: 50%;
+    transform-origin: bottom center;
+    width: 3px;
+    margin-left: -1.5px;
+    border-radius: 3px 3px 0 0;
+    background: #5bc0be;
+    z-index: 2;
+    transition: transform 0.15s ease;
+}
+.clock-hand-end {
+    position: absolute;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: #5bc0be;
+    top: 0; left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Angka di jam analog */
+.clock-number {
+    position: absolute;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #8fa8c8;
+    border-radius: 50%;
+    cursor: pointer;
+    transform: translate(-50%, -50%);
+    transition: background 0.1s, color 0.1s;
+    z-index: 4;
+}
+.clock-number.selected {
+    background: #5bc0be;
+    color: #0b132b;
+}
+.clock-number.inner {
+    font-size: 0.72rem;
+    color: #5a7090;
+}
+
+/* Tombol aksi modal */
+.clock-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+.clock-actions .btn {
+    min-width: 90px;
+    font-weight: 700;
 }
 
 /* =========================================
-   GRADASI TOMBOL (BUTTONS)
+   GRADASI TOMBOL
 ========================================= */
-.btn-primary { 
-    background: linear-gradient(45deg, #0d6efd, #0dcaf0); 
-    border: none; 
-}
-.btn-success { 
-    background: linear-gradient(45deg, #198754, #20c997); 
-    border: none; 
-}
-.btn-danger { 
-    background: linear-gradient(45deg, #dc3545, #ff6b6b); 
-    border: none; 
-}
-
-.btn:hover {
-    filter: brightness(1.1);
-    transform: translateY(-1px);
-    transition: all 0.2s ease;
-}
+.btn-primary  { background: linear-gradient(45deg,#0d6efd,#0dcaf0); border:none; }
+.btn-success  { background: linear-gradient(45deg,#198754,#20c997); border:none; }
+.btn-danger   { background: linear-gradient(45deg,#dc3545,#ff6b6b); border:none; }
+.btn:hover    { filter: brightness(1.1); transform: translateY(-1px); transition: all 0.2s; }
 
 /* =========================================
    NAVIGASI TABS
 ========================================= */
-.bg-tab-container {
-    background: #11182c;
-    border: 1px solid #3a506b;
-}
-
-.nav-pills .nav-link {
-    color: #8fa8c8;
-    transition: all 0.3s ease;
-}
-
-/* Efek gradasi pada tab yang sedang aktif */
+.bg-tab-container { background: #11182c; border: 1px solid #3a506b; }
+.nav-pills .nav-link { color: #8fa8c8; transition: all 0.3s; }
 .nav-pills .nav-link.active {
-    background: linear-gradient(45deg, #3a506b, #5bc0be);
-    color: #ffffff;
-    border: none;
+    background: linear-gradient(45deg,#3a506b,#5bc0be);
+    color: #ffffff; border: none;
     box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 
 /* =========================================
-   UKURAN SLIDER SWITCH
+   SLIDER SWITCH ON/OFF
 ========================================= */
-.form-switch .form-check-input {
-    width: 3.5em;
-    height: 1.75em;
-    cursor: pointer;
-}
-.form-switch .form-check-input:checked {
-    background-color: #20c997; 
-    border-color: #20c997;
-}
-.form-check-label {
-    font-size: 1.2rem;
-    font-weight: bold;
-    margin-top: 5px;
-}
+.form-switch .form-check-input { width:3.5em; height:1.75em; cursor:pointer; }
+.form-switch .form-check-input:checked { background-color:#20c997; border-color:#20c997; }
+.form-check-label { font-size:1.2rem; font-weight:bold; margin-top:5px; }
