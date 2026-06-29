@@ -7,45 +7,37 @@ const firebaseConfig = {
     projectId: "ppja-iot"
 };
 
-firebase.initializeApp(firebaseConfig);
+// Pastikan firebase diinisialisasi hanya sekali
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 const database = firebase.database();
-
-// Objek untuk menyimpan tugas yang sedang berjalan agar bisa dibatalkan
-let tugasAktif = {
-    Relay1: { timerId: null, jadwalOnId: null, jadwalOffId: null },
-    Relay2: { timerId: null, jadwalOnId: null, jadwalOffId: null },
-    Relay3: { timerId: null, jadwalOnId: null, jadwalOffId: null },
-    Relay4: { timerId: null, jadwalOnId: null, jadwalOffId: null }
-};
 
 // --------------------------------------------------
 // Fungsi Mengirim Data & Mengubah UI Slider
 // --------------------------------------------------
 function setRelayFirebase(relayPin, status) {
+    // Mengirim status ke Firebase (contoh: IoT-PPJA/Relay1 = 1)
     database.ref('IoT-PPJA/' + relayPin).set(status);
-    
-    // Perbarui tampilan Slider di Web
-    let slider = document.getElementById('slider' + relayPin);
-    let label = document.getElementById('labelStatus' + relayPin);
-    
-    if(slider && label) {
-        slider.checked = (status === 1);
-        label.innerText = status === 1 ? "ON" : "OFF";
-        label.className = status === 1 ? "form-check-label text-success" : "form-check-label text-danger";
-    }
 }
 
 // 1. KONTROL MANUAL (Dari klik Slider)
 function toggleManual(relayPin) {
     let status = document.getElementById('slider' + relayPin).checked ? 1 : 0;
     setRelayFirebase(relayPin, status);
+    
+    // Pastikan jika dinyalakan manual, timer dan jadwal di-reset di Firebase
+    if (status === 1 || status === 0) {
+        let nomor = relayPin.replace("Relay", ""); // Ambil angka saja, misal "1"
+        database.ref('IoT-PPJA/Timer' + nomor).set(0);
+        bukaPanel(relayPin);
+    }
 }
 
 // --------------------------------------------------
 // Fungsi Kunci & Buka Panel UI
 // --------------------------------------------------
 function kunciPanel(relayPin, namaMode) {
-    // Matikan semua input agar tidak bisa di-klik sembarangan
     document.getElementById('slider' + relayPin).disabled = true;
     document.getElementById('timer' + relayPin).disabled = true;
     document.getElementById('btnTimer' + relayPin).disabled = true;
@@ -53,13 +45,11 @@ function kunciPanel(relayPin, namaMode) {
     document.getElementById('jadwalOff' + relayPin).disabled = true;
     document.getElementById('btnJadwal' + relayPin).disabled = true;
 
-    // Tampilkan tombol Atur Ulang
     document.getElementById('boxReset' + relayPin).classList.remove('d-none');
-    document.getElementById('infoMode' + relayPin).innerText = "Mode Aktif: " + namaMode;
+    document.getElementById('infoMode' + relayPin).innerText = "Mode Aktif: " + namaMode + " (Jalan di ESP32)";
 }
 
 function bukaPanel(relayPin) {
-    // Buka kembali semua input
     document.getElementById('slider' + relayPin).disabled = false;
     document.getElementById('timer' + relayPin).disabled = false;
     document.getElementById('btnTimer' + relayPin).disabled = false;
@@ -67,34 +57,35 @@ function bukaPanel(relayPin) {
     document.getElementById('jadwalOff' + relayPin).disabled = false;
     document.getElementById('btnJadwal' + relayPin).disabled = false;
 
-    // Sembunyikan tombol Atur Ulang
     document.getElementById('boxReset' + relayPin).classList.add('d-none');
+    document.getElementById('infoMode' + relayPin).innerText = "";
 }
 
 // --------------------------------------------------
-// 2. FITUR DURASI TIMER
+// 2. FITUR DURASI TIMER (Kirim ke ESP32)
 // --------------------------------------------------
 function setTimer(relayPin) {
     let inputMenit = document.getElementById('timer' + relayPin).value;
     
     if (inputMenit > 0) {
+        // Konversi ke detik karena ESP32 menghitung dalam detik
+        let detik = inputMenit * 60;
+        
+        // Ambil nomor relay (Misal: dari "Relay1" jadi "1")
+        let nomor = relayPin.replace("Relay", "");
+        
+        // Kirim data ke Firebase (Misal: IoT-PPJA/Timer1 = 60)
+        database.ref('IoT-PPJA/Timer' + nomor).set(detik);
+        
         kunciPanel(relayPin, `Timer ${inputMenit} Menit`);
-        setRelayFirebase(relayPin, 1); // Langsung Nyala
-        
-        let waktuMilidetik = inputMenit * 60 * 1000;
-        
-        tugasAktif[relayPin].timerId = setTimeout(() => {
-            setRelayFirebase(relayPin, 0); // Mati saat habis
-            bukaPanel(relayPin);
-            alert(`Waktu Timer habis! ${relayPin} telah dimatikan.`);
-        }, waktuMilidetik);
+        alert("Timer berhasil dikirim ke ESP32! Anda bisa menutup web ini.");
     } else {
         alert("Masukkan angka menit yang valid!");
     }
 }
 
 // --------------------------------------------------
-// 3. FITUR PENJADWALAN JAM
+// 3. FITUR PENJADWALAN JAM (Kirim ke ESP32)
 // --------------------------------------------------
 function setJadwal(relayPin) {
     let jamOn = document.getElementById('jadwalOn' + relayPin).value;
@@ -105,77 +96,63 @@ function setJadwal(relayPin) {
         return;
     }
 
+    let nomor = relayPin.replace("Relay", ""); // Ambil nomor relay
+
+    // Kirim jadwal ke Firebase
+    if (jamOn) database.ref('IoT-PPJA/SchON' + nomor).set(jamOn);
+    else database.ref('IoT-PPJA/SchON' + nomor).set("none");
+
+    if (jamOff) database.ref('IoT-PPJA/SchOFF' + nomor).set(jamOff);
+    else database.ref('IoT-PPJA/SchOFF' + nomor).set("none");
+
     kunciPanel(relayPin, "Penjadwalan Otomatis");
-
-    if (jamOn) {
-        tugasAktif[relayPin].jadwalOnId = setInterval(() => {
-            let now = new Date();
-            let formatJam = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
-            if (formatJam === jamOn) setRelayFirebase(relayPin, 1);
-        }, 1000);
-    }
-
-    if (jamOff) {
-        tugasAktif[relayPin].jadwalOffId = setInterval(() => {
-            let now = new Date();
-            let formatJam = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
-            if (formatJam === jamOff) setRelayFirebase(relayPin, 0);
-        }, 1000);
-    }
+    alert("Jadwal berhasil dikirim ke ESP32! Anda bisa menutup web ini.");
 }
 
 // --------------------------------------------------
 // 4. FITUR ATUR ULANG (RESET)
 // --------------------------------------------------
 function resetSistem(relayPin) {
-    // Bersihkan semua proses yang tertunda di memori
-    clearTimeout(tugasAktif[relayPin].timerId);
-    clearInterval(tugasAktif[relayPin].jadwalOnId);
-    clearInterval(tugasAktif[relayPin].jadwalOffId);
+    let nomor = relayPin.replace("Relay", "");
     
-    // Matikan relay untuk keamanan saat di-reset
-    setRelayFirebase(relayPin, 0);
+    // Matikan relay dan reset semua parameter di Firebase
+    database.ref('IoT-PPJA/' + relayPin).set(0);
+    database.ref('IoT-PPJA/Timer' + nomor).set(0);
+    database.ref('IoT-PPJA/SchON' + nomor).set("none");
+    database.ref('IoT-PPJA/SchOFF' + nomor).set("none");
     
-    // Buka kunci UI kembali
     bukaPanel(relayPin);
     
-    // Kosongkan nilai form
     document.getElementById('timer' + relayPin).value = '';
     document.getElementById('jadwalOn' + relayPin).value = '';
     document.getElementById('jadwalOff' + relayPin).value = '';
 }
 
-// URL Database Firebase Anda
-const firebaseUrl = "https://ppja-iot-default-rtdb.asia-southeast1.firebasedatabase.app/IoT-PPJA.json";
-
-// Fungsi ini akan otomatis berjalan saat halaman web selesai dimuat
+// ==========================================
+// 5. LISTENER REALTIME FIREBASE (Sinkronisasi Dua Arah)
+// ==========================================
+// Fungsi ini menggantikan fetch() sekali jalan. 
+// on('value') akan terus memantau Firebase. Jika ESP32 mematikan relay, web akan otomatis ikut mati.
 window.onload = function() {
-  ambilDataDariFirebase();
-};
-
-function ambilDataDariFirebase() {
-  fetch(firebaseUrl)
-    .then(response => response.json())
-    .then(data => {
-      if (data) {
-        // Sesuaikan ID elemen HTML dengan ID tombol/switch di web Anda
-        if (document.getElementById("relay1Switch")) {
-          document.getElementById("relay1Switch").checked = (data.Relay1 === 1);
+    database.ref('IoT-PPJA').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            // Update UI untuk Relay 1
+            if (document.getElementById('sliderRelay1')) {
+                let slider1 = document.getElementById('sliderRelay1');
+                let label1 = document.getElementById('labelStatusRelay1');
+                slider1.checked = (data.Relay1 === 1);
+                label1.innerText = (data.Relay1 === 1) ? "ON" : "OFF";
+                label1.className = (data.Relay1 === 1) ? "form-check-label text-success" : "form-check-label text-danger";
+                
+                // Jika timer/jadwal sudah direset oleh ESP32 (menjadi 0), buka kunci panel
+                if(data.Timer1 === 0 && data.Relay1 === 0) {
+                    bukaPanel("Relay1");
+                }
+            }
+            
+            // Lakukan hal yang sama untuk Relay2, Relay3, Relay4 jika perlu
+            // ...
         }
-        if (document.getElementById("relay2Switch")) {
-          document.getElementById("relay2Switch").checked = (data.Relay2 === 1);
-        }
-        if (document.getElementById("relay3Switch")) {
-          document.getElementById("relay3Switch").checked = (data.Relay3 === 1);
-        }
-        if (document.getElementById("relay4Switch")) {
-          document.getElementById("relay4Switch").checked = (data.Relay4 === 1);
-        }
-        
-        console.log("Status terakhir berhasil dimuat dari Firebase!");
-      }
-    })
-    .catch(error => {
-      console.error("Gagal mengambil data dari Firebase:", error);
     });
-}
+};
