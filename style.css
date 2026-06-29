@@ -1,0 +1,118 @@
+/* =========================================
+   TEMA UI: MODERN DARK GRADIENT
+========================================= */
+
+body {
+    /* Gradasi Latar Belakang Halus */
+    background: linear-gradient(135deg, #0b132b 0%, #1a2751 100%);
+    min-height: 100vh;
+    color: #ffffff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Kotak Konten (Card) dengan Gradasi */
+.custom-card {
+    background: linear-gradient(145deg, #1c2541, #161e35);
+    border: 1px solid #3a506b;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+/* Memaksa font judul dan label menjadi putih */
+.card-body h5, .card-body label, .card-body span {
+    color: #ffffff !important;
+}
+
+.text-muted {
+    color: #5bc0be !important; 
+}
+
+/* =========================================
+   PERBAIKAN INPUT TEXT BIAR KELIATAN
+========================================= */
+.form-control {
+    background-color: #11182c !important; /* Warna dasar kotak lebih gelap */
+    border: 1px solid #3a506b !important;
+    color: #ffffff !important; /* MEMAKSA TEKS JADI PUTIH */
+    font-weight: 600;
+}
+
+/* Warna teks petunjuk (placeholder) */
+.form-control::placeholder {
+    color: #6e84a3 !important;
+}
+
+/* Efek menyala saat kotak input di-klik */
+.form-control:focus {
+    background-color: #1c2744 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 0 0.25rem rgba(91, 192, 190, 0.25);
+    border-color: #5bc0be !important;
+}
+
+/* Ikon jam di dalam input time agar jadi putih */
+input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+}
+
+/* =========================================
+   GRADASI TOMBOL (BUTTONS)
+========================================= */
+.btn-primary { 
+    background: linear-gradient(45deg, #0d6efd, #0dcaf0); 
+    border: none; 
+}
+.btn-success { 
+    background: linear-gradient(45deg, #198754, #20c997); 
+    border: none; 
+}
+.btn-danger { 
+    background: linear-gradient(45deg, #dc3545, #ff6b6b); 
+    border: none; 
+}
+
+.btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}
+
+/* =========================================
+   NAVIGASI TABS
+========================================= */
+.bg-tab-container {
+    background: #11182c;
+    border: 1px solid #3a506b;
+}
+
+.nav-pills .nav-link {
+    color: #8fa8c8;
+    transition: all 0.3s ease;
+}
+
+/* Efek gradasi pada tab yang sedang aktif */
+.nav-pills .nav-link.active {
+    background: linear-gradient(45deg, #3a506b, #5bc0be);
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+/* =========================================
+   UKURAN SLIDER SWITCH
+========================================= */
+.form-switch .form-check-input {
+    width: 3.5em;
+    height: 1.75em;
+    cursor: pointer;
+}
+.form-switch .form-check-input:checked {
+    background-color: #20c997; 
+    border-color: #20c997;
+}
+.form-check-label {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-top: 5px;
+}

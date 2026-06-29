@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Kontrol Jarak Jauh</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container py-4">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold"><i class="bi bi-cpu"></i> SKRIPSI PPJA: Dashboard Kontrol Perangkat</h2>
+        </div>
+
+        <ul class="nav nav-pills nav-fill mb-4 shadow-sm rounded-pill p-1 bg-tab-container" id="pills-tab" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active rounded-pill fw-bold" data-bs-toggle="pill" data-bs-target="#tab-relay1"><i class="bi bi-hdd-network"></i> Relay 1</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link rounded-pill fw-bold" data-bs-toggle="pill" data-bs-target="#tab-relay2"><i class="bi bi-hdd-network"></i> Relay 2</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link rounded-pill fw-bold" data-bs-toggle="pill" data-bs-target="#tab-relay3"><i class="bi bi-hdd-network"></i> Relay 3</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link rounded-pill fw-bold" data-bs-toggle="pill" data-bs-target="#tab-relay4"><i class="bi bi-hdd-network"></i> Relay 4</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="pills-tabContent">
+            
+            <div class="tab-pane fade show active" id="tab-relay1">
+                <div class="card custom-card mx-auto" style="max-width: 500px;" id="panelRelay1">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3 border-secondary">
+                            <h5 class="mb-0"><i class="bi bi-joystick"></i> Manual Kontrol</h5>
+                            <div class="form-check form-switch d-flex align-items-center">
+                                <input class="form-check-input me-2" type="checkbox" id="sliderRelay1" onchange="toggleManual('Relay1')">
+                                <label class="form-check-label text-danger" id="labelStatusRelay1">OFF</label>
+                            </div>
+                        </div>
+                        <h5 class="mb-3"><i class="bi bi-hourglass-split"></i> Durasi Nyala</h5>
+                        <div class="input-group mb-4">
+                            <span class="input-group-text bg-dark border-secondary"><i class="bi bi-clock-history"></i></span>
+                            <input type="number" id="timerRelay1" class="form-control bg-dark border-secondary" placeholder="Menit">
+                            <button class="btn btn-primary fw-bold" id="btnTimerRelay1" onclick="setTimer('Relay1')">Mulai</button>
+                        </div>
+                        <h5 class="mb-3"><i class="bi bi-calendar-event"></i> Penjadwalan</h5>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text bg-dark border-secondary">ON Pukul</span>
+                            <input type="time" id="jadwalOnRelay1" class="form-control bg-dark border-secondary">
+                        </div>
+                        <div class="input-group mb-4">
+                            <span class="input-group-text bg-dark border-secondary">OFF Pukul</span>
+                            <input type="time" id="jadwalOffRelay1" class="form-control bg-dark border-secondary">
+                            <button class="btn btn-success fw-bold" id="btnJadwalRelay1" onclick="setJadwal('Relay1')">Set Jadwal</button>
+                        </div>
+                        <div class="text-center mt-3 d-none" id="boxResetRelay1">
+                            <hr class="border-secondary">
+                            <span class="badge bg-warning text-dark mb-2" id="infoModeRelay1">Otomatisasi Aktif</span>
+                            <button class="btn btn-outline-danger w-100 fw-bold" onclick="resetSistem('Relay1')">
+                                <i class="bi bi-arrow-counterclockwise"></i> Batalkan & Atur Ulang
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab-relay2">
+                <div class="card custom-card mx-auto" style="max-width: 500px;" id="panelRelay2">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3 border-secondary">
+                            <h5 class="mb-0"><i class="bi bi-joystick"></i> Manual Kontrol</h5>
+                            <div class="form-check form-switch d-flex align-items-center">
+                                <input class="form-check-input me-2" type="checkbox" id="sliderRelay2" onchange="toggleManual('Relay2')">
+                                <label class="form-check-label text-danger" id="labelStatusRelay2">OFF</label>
+                            </div>
+                        </div>
+                        <h5 class="mb-3"><i class="bi bi-hourglass-split"></i> Durasi Nyala</h5>
+                        <div class="input-group mb-4">
+                            <span class="input-group-text bg-dark border-secondary"><i class="bi bi-clock-history"></i></span>
+                            <input type="number" id="timerRelay2" class="form-control bg-dark border-secondary" placeholder="Menit">
+                            <button class="btn btn-primary fw-bold" id="btnTimerRelay2" onclick="setTimer('Relay2')">Mulai</button>
+                        </div>
+                        <h5 class="mb-3"><i class="bi bi-calendar-event"></i> Penjadwalan</h5>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text bg-dark border-secondary">ON Pukul</span>
+                            <input type="time" id="jadwalOnRelay2" class="form-control bg-dark border-secondary">
+                        </div>
+                        <div class="input-group mb-4">
+                            <span class="input-group-text bg-dark border-secondary">OFF Pukul</span>
+                            <input type="time" id="jadwalOffRelay2" class="form-control bg-dark border-secondary">
+                            <button class="btn btn-success fw-bold" id="btnJadwalRelay2" onclick="setJadwal('Relay2')">Set Jadwal</button>
+                        </div>
+                        <div class="text-center mt-3 d-none" id="boxResetRelay2">
+                            <hr class="border-secondary">
+                            <span class="badge bg-warning text-dark mb-2" id="infoModeRelay2">Otomatisasi Aktif</span>
+                            <button class="btn btn-outline-danger w-100 fw-bold" onclick="resetSistem('Relay2')">
+                                <i class="bi bi-arrow-counterclockwise"></i> Batalkan & Atur Ulang
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab-relay3">
+                <div class="card custom-card mx-auto" style="max-width: 500px;" id="panelRelay3">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3 border-secondary">
+                            <h5 class="mb-0"><i class="bi bi-joystick"></i> Manual Kontrol</h5>
+                            <div class="form-check form-switch d-flex align-items-center">
+                                <input class="form-check-input me-2" type="checkbox" id="sliderRelay3" onchange="toggleManual('Relay3')">
+                                <label class="form-check-label text-danger" id="labelStatusRelay3">OFF</label>
+                            </div>
+                        </div>
+                        <h5 class="mb-3"><i class="bi bi-hourglass-split"></i> Durasi Nyala</h5>
+                        <div class="input-group mb-4">
+                            <span class="input-group-text bg-dark border-secondary"><i class="bi bi-clock-history"></i></span>
+                            <input type="number" id="timerRelay3" class="form-control bg-dark border-secondary" placeholder="Menit">
+                            <button class="btn btn-primary fw-bold" id="btnTimerRelay3" onclick="setTimer('Relay3')">Mulai</button>
+                        </div>
+                        <h5 class="mb-3"><i class="bi bi-calendar-event"></i> Penjadwalan</h5>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text bg-dark border-secondary">ON Pukul</span>
+                            <input type="time" id="jadwalOnRelay3" class="form-control bg-dark border-secondary">
+                        </div>
+                        <div class="input-group mb-4">
+                            <span class="input-group-text bg-dark border-secondary">OFF Pukul</span>
+                            <input type="time" id="jadwalOffRelay3" class="form-control bg-dark border-secondary">
+                            <button class="btn btn-success fw-bold" id="btnJadwalRelay3" onclick="setJadwal('Relay3')">Set Jadwal</button>
+                        </div>
+                        <div class="text-center mt-3 d-none" id="boxResetRelay3">
+                            <hr class="border-secondary">
+                            <span class="badge bg-warning text-dark mb-2" id="infoModeRelay3">Otomatisasi Aktif</span>
+                            <button class="btn btn-outline-danger w-100 fw-bold" onclick="resetSistem('Relay3')">
+                                <i class="bi bi-arrow-counterclockwise"></i> Batalkan & Atur Ulang
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab-relay4">
+                <div class="card custom-card mx-auto" style="max-width: 500px;" id="panelRelay4">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3 border-secondary">
+                            <h5 class="mb-0"><i class="bi bi-joystick"></i> Manual Kontrol</h5>
+                            <div class="form-check form-switch d-flex align-items-center">
+                                <input class="form-check-input me-2" type="checkbox" id="sliderRelay4" onchange="toggleManual('Relay4')">
+                                <label class="form-check-label text-danger" id="labelStatusRelay4">OFF</label>
+                            </div>
+                        </div>
+                        <h5 class="mb-3"><i class="bi bi-hourglass-split"></i> Durasi Nyala</h5>
+                        <div class="input-group mb-4">
+                            <span class="input-group-text bg-dark border-secondary"><i class="bi bi-clock-history"></i></span>
+                            <input type="number" id="timerRelay4" class="form-control bg-dark border-secondary" placeholder="Menit">
+                            <button class="btn btn-primary fw-bold" id="btnTimerRelay4" onclick="setTimer('Relay4')">Mulai</button>
+                        </div>
+                        <h5 class="mb-3"><i class="bi bi-calendar-event"></i> Penjadwalan</h5>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text bg-dark border-secondary">ON Pukul</span>
+                            <input type="time" id="jadwalOnRelay4" class="form-control bg-dark border-secondary">
+                        </div>
+                        <div class="input-group mb-4">
+                            <span class="input-group-text bg-dark border-secondary">OFF Pukul</span>
+                            <input type="time" id="jadwalOffRelay4" class="form-control bg-dark border-secondary">
+                            <button class="btn btn-success fw-bold" id="btnJadwalRelay4" onclick="setJadwal('Relay4')">Set Jadwal</button>
+                        </div>
+                        <div class="text-center mt-3 d-none" id="boxResetRelay4">
+                            <hr class="border-secondary">
+                            <span class="badge bg-warning text-dark mb-2" id="infoModeRelay4">Otomatisasi Aktif</span>
+                            <button class="btn btn-outline-danger w-100 fw-bold" onclick="resetSistem('Relay4')">
+                                <i class="bi bi-arrow-counterclockwise"></i> Batalkan & Atur Ulang
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div> </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
