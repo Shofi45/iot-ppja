@@ -100,6 +100,90 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 /* =========================================
+   PANEL CONTROLLER (muncul setelah kartu status diklik)
+========================================= */
+#controllerSection {
+    animation: fadeInController 0.25s ease;
+}
+
+@keyframes fadeInController {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================
+   KARTU STATUS DASHBOARD (RINGKASAN 4 PERANGKAT)
+========================================= */
+.status-card {
+    background: linear-gradient(145deg, #1c2541, #161e35);
+    border: 1px solid #3a506b;
+    border-radius: 14px;
+    padding: 16px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+    height: 100%;
+}
+
+.status-card:hover {
+    transform: translateY(-3px);
+    border-color: #5bc0be;
+}
+
+.status-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.status-card-icon {
+    font-size: 1.4rem;
+    color: #8fa8c8;
+}
+
+.status-card-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+}
+
+.status-card-badge.is-off {
+    background: rgba(220, 53, 69, 0.18);
+    color: #ff6b6b;
+    border: 1px solid rgba(255, 107, 107, 0.4);
+}
+
+.status-card-badge.is-on {
+    background: rgba(32, 201, 151, 0.18);
+    color: #20c997;
+    border: 1px solid rgba(32, 201, 151, 0.5);
+}
+
+.status-card-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #ffffff !important;
+}
+
+.status-card-mode {
+    font-size: 0.8rem;
+    color: #8fa8c8 !important;
+    margin-top: 2px;
+}
+
+.status-card.is-active {
+    border-color: #20c997;
+    box-shadow: 0 0 0 1px rgba(32, 201, 151, 0.4), 0 8px 22px rgba(32, 201, 151, 0.15);
+}
+
+.status-card.is-active .status-card-icon {
+    color: #20c997;
+}
+
+/* =========================================
    UKURAN SLIDER SWITCH
 ========================================= */
 .form-switch .form-check-input {

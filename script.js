@@ -10,6 +10,48 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
 // ==========================================
+// 1b. STATE COUNTDOWN TIMER (live mm:ss)
+// ==========================================
+// Simpan waktu berakhir (epoch ms) tiap relay yang timernya sedang aktif.
+// null artinya relay itu tidak sedang dalam mode timer.
+let countdownEndAt = { Relay1: null, Relay2: null, Relay3: null, Relay4: null };
+
+function formatMMSS(ms) {
+    if (ms < 0) ms = 0;
+    let totalSec = Math.floor(ms / 1000);
+    let m = Math.floor(totalSec / 60);
+    let s = totalSec % 60;
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+// Dipanggil tiap detik. Murni hitung mundur di sisi browser (tidak nunggu
+// event Firebase), jadi tampilannya mulus turun per detik: 02:00, 01:59, ...
+// Ini HANYA tampilan; yang benar-benar mematikan relay tetap ESP32.
+function updateAllCountdowns() {
+    for (let i = 1; i <= 4; i++) {
+        let rn = 'Relay' + i;
+        let endAt = countdownEndAt[rn];
+        if (!endAt) continue;
+
+        let remaining = endAt - Date.now();
+        let label = 'Timer ' + formatMMSS(remaining) + ' tersisa';
+
+        let infoEl = document.getElementById('infoMode' + rn);
+        if (infoEl) infoEl.innerText = label + ' (Jalan di ESP32)';
+
+        let cardModeEl = document.getElementById('statusMode' + rn);
+        if (cardModeEl) cardModeEl.textContent = 'Timer ' + formatMMSS(remaining);
+
+        if (remaining <= 0) {
+            // Sudah 00:00 di layar; tunggu ESP32 benar-benar mematikan relay
+            // & mereset TimerMenit lewat Firebase (biasanya <1-2 detik lagi).
+            countdownEndAt[rn] = null;
+        }
+    }
+}
+setInterval(updateAllCountdowns, 1000);
+
+// ==========================================
 // 2. STATE CLOCK PICKER
 // ==========================================
 let clockState = {
@@ -303,8 +345,19 @@ function setTimer(relayPin) {
     let menit = document.getElementById('timer' + relayPin).value;
     if (menit > 0) {
         let nomor = relayPin.replace("Relay","");
-        database.ref('IoT-PPJA/Timer'      + nomor).set(menit * 60);
+        let endAt = Date.now() + Number(menit) * 60 * 1000;
+
+        database.ref('IoT-PPJA/Timer'      + nomor).set(Number(menit) * 60);
         database.ref('IoT-PPJA/TimerMenit' + nomor).set(Number(menit));
+        // Waktu akhir (epoch ms) disimpan supaya countdown mm:ss konsisten
+        // di semua device yang buka web ini, dan tetap benar walau di-refresh.
+        database.ref('IoT-PPJA/TimerEnd'   + nomor).set(endAt);
+        // Langsung set Relay = ON di sini juga (tidak tunggu ESP32 polling).
+        // Kalau sebelumnya OFF -> langsung nyala. Kalau sebelumnya sudah ON -> tetap ON.
+        // Semua device yang buka web ini juga langsung ikut ter-update via listener realtime.
+        database.ref('IoT-PPJA/Relay' + nomor).set(1);
+
+        countdownEndAt[relayPin] = endAt;
         kunciPanel(relayPin, `Timer ${menit} Menit`);
         alert("Timer berhasil dikirim ke ESP32!");
     } else {
@@ -331,8 +384,10 @@ function resetSistem(relayPin) {
     database.ref('IoT-PPJA/' + relayPin).set(0);
     database.ref('IoT-PPJA/Timer'      + nomor).set(0);
     database.ref('IoT-PPJA/TimerMenit' + nomor).set(0);
+    database.ref('IoT-PPJA/TimerEnd'   + nomor).set(0);
     database.ref('IoT-PPJA/SchON'      + nomor).set("none");
     database.ref('IoT-PPJA/SchOFF'     + nomor).set("none");
+    countdownEndAt[relayPin] = null;
     bukaPanel(relayPin);
 
     let timerEl = document.getElementById('timer' + relayPin);
@@ -363,6 +418,7 @@ window.onload = function () {
             let statusRelay = data["Relay" + i];
             let timerDetik  = data["Timer" + i];
             let timerMenit  = data["TimerMenit" + i];
+            let timerEnd    = data["TimerEnd" + i];
             let schOn       = data["SchON"  + i];
             let schOff      = data["SchOFF" + i];
 
@@ -373,6 +429,23 @@ window.onload = function () {
                 : "form-check-label text-danger";
 
             let jadwalAktif = (schOn && schOn !== "none") || (schOff && schOff !== "none");
+            let timerAktif  = !!(timerMenit && timerMenit > 0);
+
+            // ===== KARTU STATUS DI DASHBOARD =====
+            let badge = document.getElementById('statusBadge' + rn);
+            let modeEl = document.getElementById('statusMode' + rn);
+            let card = document.getElementById('statusCard' + rn);
+            if (badge && modeEl && card) {
+                let isOn = statusRelay === 1;
+                badge.textContent = isOn ? 'ON' : 'OFF';
+                badge.className = 'status-card-badge ' + (isOn ? 'is-on' : 'is-off');
+                card.classList.toggle('is-active', isOn);
+
+                let modeText = 'Manual';
+                if (jadwalAktif) modeText = 'Jadwal';
+                else if (timerAktif) modeText = 'Timer ' + timerMenit + ' mnt';
+                modeEl.textContent = modeText;
+            }
 
             if (jadwalAktif) {
                 // Restore tampilan tombol
@@ -389,15 +462,57 @@ window.onload = function () {
                     if (n) n.textContent = schOff;
                 }
                 try { kunciPanel(rn, "Penjadwalan Otomatis"); } catch(e) {}
+                countdownEndAt[rn] = null; // bukan mode timer -> tidak perlu hitung mundur
 
-            } else if (timerMenit && timerMenit > 0) {
+            } else if (timerAktif) {
                 let el = document.getElementById('timer' + rn);
                 if (el) el.value = timerMenit;
                 try { kunciPanel(rn, `Timer ${timerMenit} Menit`); } catch(e) {}
 
-            } else if (timerDetik === 0 && statusRelay === 0) {
+                // Aktifkan hitung mundur mm:ss dari waktu akhir yang tersimpan.
+                // Kalau field TimerEnd belum ada (device lama), fallback pakai
+                // "sekarang + sisa menit" supaya tetap ada tampilan hitung mundur.
+                if (timerEnd && timerEnd > 0) {
+                    countdownEndAt[rn] = timerEnd;
+                } else if (!countdownEndAt[rn]) {
+                    countdownEndAt[rn] = Date.now() + (timerMenit * 60 * 1000);
+                }
+                updateAllCountdowns();
+
+            } else {
+                // Tidak ada jadwal & tidak ada timer aktif -> panel normal.
+                // Ini juga yang membuat panel OTOMATIS ter-unlock begitu
+                // ESP32 mereset TimerMenit ke 0 setelah timer selesai.
                 try { bukaPanel(rn); } catch(e) {}
+                let timerEl = document.getElementById('timer' + rn);
+                if (timerEl) timerEl.value = '';
+                countdownEndAt[rn] = null;
             }
         }
     });
 };
+
+// ==========================================
+// 8. DASHBOARD STATUS -> TAMPILKAN PANEL CONTROLLER
+// ==========================================
+// Panel controller (tab + form on/off/timer/jadwal) disembunyikan secara
+// default. Baru muncul begitu salah satu dari 4 kartu status diklik.
+function gotoRelay(relayName) {
+    let nomor = relayName.replace("Relay", "");
+
+    let section = document.getElementById('controllerSection');
+    if (section) section.classList.remove('d-none');
+
+    let btn = document.querySelector('[data-bs-target="#tab-relay' + nomor + '"]');
+    if (btn && window.bootstrap) {
+        bootstrap.Tab.getOrCreateInstance(btn).show();
+    }
+
+    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function kembaliDashboard() {
+    let section = document.getElementById('controllerSection');
+    if (section) section.classList.add('d-none');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
